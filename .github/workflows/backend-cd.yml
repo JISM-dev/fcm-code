@@ -1,0 +1,42 @@
+name: backEnd CD
+
+on:
+  push:
+    branches: '*'
+
+permissions:
+  contents: read
+
+jobs:
+  chat-server:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ✅ 코드 체크아웃
+        uses: actions/checkout@v3
+
+      - name: 👻 노드 설정
+        uses: actions/setup-node@v3
+        with:
+          node-version: 21.7.2
+
+      - name: ⬇️ 의존성 설치
+        run: npm ci
+
+      - name: 📦 프로젝트 빌드
+        run: npm run build
+
+      - name: 🐳 도커 로그인/빌드/푸시
+        run: |
+          docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+          docker build -t ${{ secrets.DOCKER_ALARM_REPO }}/soccer-alarm .
+          docker push ${{ secrets.DOCKER_ALARM_REPO }}/soccer-alarm
+
+      - name: 🏃‍♂️Deploy
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.HOST }}
+          username: ubuntu
+          key: ${{ secrets.KEY }}
+          script: |
+            ./deploy.sh
